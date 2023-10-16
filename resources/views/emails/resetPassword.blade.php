@@ -175,7 +175,7 @@
 
     .btn a {
       background-color: #ffffff;
-      border: solid 1px #00750e;
+      border: solid 1px #eb761b;
       border-radius: 5px;
       box-sizing: border-box;
       color: #3498db;
@@ -190,11 +190,11 @@
     }
 
     .btn-primary table td {
-      background-color: #00750e;
+      background-color: #eb761b;
     }
 
     .btn-primary a {
-      background-color: #00750e;
+      background-color: #eb761b;
       border-color: #3498db;
       color: #ffffff;
     }

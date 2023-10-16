@@ -83,107 +83,6 @@ class AuthController extends Controller
         }
     }
 
-    public function forget_password(Request $request)
-    {
-        $validator = Validator::make(request()->all(), [
-            'email' => 'required|email|exists:users',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'code' => 422,
-                'message' => 'Please see errors parameter for all errors.',
-                'errors' => $validator->errors()
-            ]);
-        }
-
-        $user = User::where('email', $request->email)->first();
-
-        // Delete all old code that user send before.
-        ResetCodePassword::where('email', $request->email)->delete();
-
-        // Generate random code
-        $code = mt_rand(100000, 999999);
-
-        // Create a new code
-        $codeData = ResetCodePassword::create([
-            'email' => $request->email,
-            'code' => $code
-        ]);
-
-         /** Store information to include in mail in $data as an array */
-         $data = array(
-            'name' => $user->name,
-            'email' => $user->email,
-            'code' => $codeData->code
-        );
-
-        /** Send message to the user */
-        Mail::send('emails.resetPassword', $data, function ($m) use ($data) {
-            $m->to($data['email'])->subject(config('app.name'));
-        });
-
-        return response()->json([
-            'code' => 200,
-            'message' => "We have emailed your password reset code.",
-        ]);
-    }
-
-    public function reset_password($id, Request $request)
-    {
-        $validator = Validator::make(request()->all(), [
-            'code' => 'required|string|exists:reset_code_passwords',
-            'password' => 'required|string|min:6|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'code' => 422,
-                'message' => 'Please see errors parameter for all errors.',
-                'errors' => $validator->errors()
-            ]);
-        }
-
-        $finder = Crypt::decrypt($id);
-
-        if (ResetCodePassword::where('code', '=', $request->code)->exists()) {
-            // find the code
-            $passwordReset = ResetCodePassword::firstWhere('code', $request->code);
-
-            // check if it does not expired: the time is one hour
-            if ($passwordReset->created_at > now()->addHour()) {
-                $passwordReset->delete();
-
-                return response()->json([
-                    'code' => 401,
-                    'message' => 'Password reset code expired'
-                ]);
-            }
-
-            // find user's email
-            $user = User::find($finder);
-
-            // update user password
-            $user->update([
-                'password' => Hash::make($request->password)
-            ]);
-
-            // delete current code
-            $passwordReset->delete();
-
-            return response()->json([
-                'code' => 200,
-                'message' => 'Password has been successfully reset, Please login',
-                'data' => route('login')
-            ]);
-        } else {
-            return response()->json([
-                'code' => 401,
-                'message' => "Code doesn't exist in our database."
-            ]);
-        }
-    }
-
     public function register(Request $request)
     {
         $validator = Validator::make(request()->all(), [
@@ -352,6 +251,105 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'User authentication failed.',
+            ]);
+        }
+    }
+
+    public function forget_password(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'email' => 'required|email|exists:users',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        // Delete all old code that user send before.
+        ResetCodePassword::where('email', $request->email)->delete();
+
+        // Generate random code
+        $code = mt_rand(100000, 999999);
+
+        // Create a new code
+        $codeData = ResetCodePassword::create([
+            'email' => $request->email,
+            'code' => $code
+        ]);
+
+         /** Store information to include in mail in $data as an array */
+         $data = array(
+            'name' => $user->name,
+            'email' => $user->email,
+            'code' => $codeData->code
+        );
+
+        /** Send message to the user */
+        Mail::send('emails.resetPassword', $data, function ($m) use ($data) {
+            $m->to($data['email'])->subject(config('app.name'));
+        });
+
+        return response()->json([
+            'code' => 200,
+            'message' => "We have emailed your password reset code.",
+        ]);
+    }
+
+    public function reset_password(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'code' => 'required|string|exists:reset_code_passwords',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        if (ResetCodePassword::where('code', '=', $request->code)->exists()) {
+            // find the code
+            $passwordReset = ResetCodePassword::firstWhere('code', $request->code);
+
+            // check if it does not expired: the time is one hour
+            if ($passwordReset->created_at > now()->addHour()) {
+                $passwordReset->delete();
+
+                return response()->json([
+                    'code' => 401,
+                    'message' => 'Password reset code expired'
+                ]);
+            }
+
+            // find user's email
+            $user = User::where('email', $passwordReset->email)->first();
+
+            // update user password
+            $user->update([
+                'password' => Hash::make($request->password),
+                'current_password' => $request->password
+            ]);
+
+            // delete current code
+            $passwordReset->delete();
+
+            return response()->json([
+                'code' => 200,
+                'message' => 'Password has been successfully reset, Please login',
+            ]);
+        } else {
+            return response()->json([
+                'code' => 401,
+                'message' => "Code doesn't exist in our database."
             ]);
         }
     }
