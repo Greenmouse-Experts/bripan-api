@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return response([
         'code' => 200,
-        'message' => 'You are now on membership API endpoints'
+        'message' => 'You are now on Bripan API endpoints'
     ]);
 });
 
