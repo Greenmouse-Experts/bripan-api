@@ -283,8 +283,14 @@ class AdminController extends Controller
     public function member_add(Request $request)
     {
         $validator = Validator::make(request()->all(), [
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255'],
+            'account_type' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email:rfc,strict', 'max:255', 'unique:users,email'],
+            'phone_number' => ['required', 'string', 'max:255', 'regex:/^([0-9\s\-\+\(\)]*)$/', 'min:10'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            'passport' => 'nullable|mimes:jpeg,png,jpg|max:16384',
+            'certificates' => 'nullable|mimes:jpeg,png,jpg|max:16384',
         ]);
 
         if ($validator->fails()) {
@@ -305,33 +311,65 @@ class AdminController extends Controller
             ]);
         }
 
-        $latestId = User::where('account_type', 'Member')->max('id') + 1;
+        $latestId = User::where('account_type', '<>', 'Administrator')->max('id') + 1;
         $customId = str_pad($latestId, 3, '0', STR_PAD_LEFT);
         $password = Str::random(8);
 
+        if (request()->hasFile('passport')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->passport->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $passport = cloudinary()->uploadFile($request->passport->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
+        if (request()->hasFile('certificates')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->certificates->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $certificates = cloudinary()->uploadFile($request->certificates->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
         $user = User::create([
             'membership_id' => config('app.name').$customId,
-            'account_type' => 'Member',
-            'name' => $request->name,
-            'username' => config('app.name').strtoupper(substr($request->name, 0, 2)).$customId,
+            'account_type' => $request->account_type,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'username' => config('app.name').strtoupper(substr($request->first_name, 0, 2)).$customId,
             'email' => $request->email,
             'email_verified_at' => now(),
-            'password' => $password,
+            'password' => Hash::make($password),
             'current_password' => $password,
             'phone_number' => $request->phone_number,
             'gender' => $request->gender,
             'marital_status' => $request->marital_status,
             'state' => $request->state,
             'address' =>  $request->address,
+            'passport' => $passport ?? null,
+            'certificates' => $certificates ?? null,
+            'place_business_employment' => $request->place_business_employment,
+            'nature_business_employment' => $request->nature_business_employment,
+            'membership_professional_bodies' => $request->membership_professional_bodies,
+            'previous_insolvency_work_experience' => $request->previous_insolvency_work_experience,
+            'referee_email_address' => $request->referee_email_address,
         ]);  
         
         /** Store information to include in mail in $data as an array */
         $data = array(
-            'name' => $user->name,
+            'name' => $user->first_name.' '.$user->last_name,
             'email' => $user->email,
             'username' => $user->username,
             'membership_id' => $user->membership_id,
-            'password' => $password
+            'password' => $request->password
         );
 
         /** Send message to the user */
@@ -341,7 +379,7 @@ class AdminController extends Controller
 
         return response()->json([
             'code' => 200,
-            'message' => $user->name.' account created successfully!',
+            'message' => $user->first_name.' '.$user->last_name.' account created successfully!',
         ]);
     }
 
@@ -429,7 +467,11 @@ class AdminController extends Controller
         }
 
         $validator = Validator::make(request()->all(), [
-            'name' => ['required', 'string', 'max:255'],
+            'account_type' => ['required', 'string', 'max:255'],
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'phone_number' => ['required', 'string', 'max:255', 'regex:/^([0-9\s\-\+\(\)]*)$/', 'min:10'],
+            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
         ]);
 
         if ($validator->fails()) {
@@ -443,7 +485,9 @@ class AdminController extends Controller
         if($user->email == $request->email)
         {
             $user->update([
-                'first_name' => $request->name,
+                'account_type' => $request->account_type,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
                 'phone_number' => $request->phone_number,
                 'gender' => $request->gender,
                 'marital_status' => $request->marital_status,
@@ -453,7 +497,7 @@ class AdminController extends Controller
         } else {
             //Validate Request
             $validator = Validator::make(request()->all(), [
-                'email' => ['string', 'email', 'max:255'],
+                'email' => ['required', 'string', 'email:rfc,strict', 'max:255', 'unique:users,email'],
             ]);
     
             if ($validator->fails()) {
@@ -464,18 +508,10 @@ class AdminController extends Controller
                 ]);
             }
 
-            $existing = User::where('email', $request->email)->first();
-            
-            if($existing)
-            {
-                return response()->json([
-                    'code' => 401,
-                    'message' => 'Email already exists.'
-                ]);
-            }
-
             $user->update([
+                'account_type' => $request->account_type,
                 'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
                 'email' => $request->email,
                 'phone_number' => $request->phone_number,
                 'gender' => $request->gender,
