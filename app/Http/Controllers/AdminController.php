@@ -476,7 +476,7 @@ class AdminController extends Controller
             'first_name' => ['required', 'string', 'max:255'],
             'last_name' => ['required', 'string', 'max:255'],
             'phone_number' => ['required', 'string', 'max:255', 'regex:/^([0-9\s\-\+\(\)]*)$/', 'min:10'],
-            'username' => ['required', 'string', 'max:255', 'unique:users,username'],
+            // 'username' => ['required', 'string', 'max:255', 'unique:users,username'],
         ]);
 
         if ($validator->fails()) {
@@ -515,7 +515,7 @@ class AdminController extends Controller
         {
             $user->update([
                 'account_type' => $request->account_type,
-                'username' => $request->username,
+                // 'username' => $request->username,
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'phone_number' => $request->phone_number,
@@ -547,7 +547,7 @@ class AdminController extends Controller
 
             $user->update([
                 'account_type' => $request->account_type,
-                'username' => $request->username,
+                // 'username' => $request->username,
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'email' => $request->email,
@@ -1283,6 +1283,12 @@ class AdminController extends Controller
 
         // Handle image upload
         if (request()->hasFile('image')) {
+            if($announcement->image)
+            {
+                $token = explode('/', $announcement->image);
+                $token2 = explode('.', $token[sizeof($token)-1]);
+                cloudinary()->destroy(config('app.name').'/api/'.$token2[0]);
+            }
             $file = str_replace(' ', '', uniqid(5).'-'.$request->image->getClientOriginalName());
             $filename = pathinfo($file, PATHINFO_FILENAME);
 
