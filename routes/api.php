@@ -56,14 +56,6 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::post('/read/notification', [MemberController::class, 'read_notification']);
                 Route::post('/delete/notification', [MemberController::class, 'delete_notification']);
 
-                // Support
-                Route::get('/supports', [MemberController::class, 'supports'])->name('supports');
-                Route::post('/create/support/ticket', [MemberController::class, 'create_support_ticket'])->name('create.support.ticket');
-                Route::get('/view/support/ticket/{room_id}', [MemberController::class, 'view_support_ticket'])->name('view.support.ticket');
-                Route::get('/close/support/ticket/{room_id}', [MemberController::class, 'close_support_ticket'])->name('close.support.ticket');
-                Route::post('/send/support/message/{room_id}', [MemberController::class, 'send_support_message'])->name('send.support.message');
-                Route::get('/download/support/attachment/{id}', [MemberController::class, 'download_support_attachment'])->name('download.support.attachment');
-        
                 // Payment
                 Route::get('/payments', [MemberController::class, 'payments'])->name('payments');
                 Route::get('/payment/callback', [MemberController::class, 'handleGatewayCallback'])->name('handleGatewayCallback');
@@ -74,7 +66,10 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::get('/payments/pending', [MemberController::class, 'payments_pending'])->name('payments.pending');
         
                 // Announcements
-                Route::get('/announcements', [MemberController::class, 'announcements'])->name('announcements');
+                Route::get('/announcements', [MemberController::class, 'announcements']);
+
+                // Events
+                Route::get('/events', [MemberController::class, 'events']);
         
                 // Contact Us
                 Route::get('/messages', [MemberController::class, 'messages'])->name('messages');

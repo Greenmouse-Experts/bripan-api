@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\NotificationResource;
+use App\Models\Announcement;
+use App\Models\Event;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -293,6 +295,28 @@ class MemberController extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'Notification deleted successfully.'
+        ], 200);
+    }
+
+    public function announcements()
+    {
+        $announcements = Announcement::latest()->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Annoucements Retrieved Successfully.',
+            'data' => $announcements
+        ], 200);
+    }
+
+    public function events()
+    {
+        $events = Event::latest()->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Events Retrieved Successfully.',
+            'data' => $events
         ], 200);
     }
 
