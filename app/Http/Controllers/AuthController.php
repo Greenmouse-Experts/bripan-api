@@ -28,7 +28,7 @@ class AuthController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         $input = $request->only(['email', 'password']);
@@ -39,14 +39,14 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'Incorrect Password!',
-            ]);
+            ], 401);
         }
 
         if (!$admin || !Hash::check($request->password, $admin->password)) {
             return response()->json([
                 'code' => 401,
                 'message' => "Email doesn't exist",
-            ]);
+            ], 401);
         }
 
         // authentication attempt
@@ -58,10 +58,20 @@ class AuthController extends Controller
                 return response()->json([
                     'code' => 401,
                     'message' => "Account disactivated, please contact administrator.",
-                ]);
+                ], 401);
             }
 
             if ($admin->account_type == 'Administrator') {
+
+                // Get the old token
+                $oldToken = $admin->tokens->where('name', 'API TOKEN')->first();
+
+                if($oldToken)
+                {
+                    // Revoke the old token
+                    $oldToken->delete();
+                }
+
                 $token = $admin->createToken("API TOKEN")->plainTextToken;
 
                 return response()->json([
@@ -69,17 +79,17 @@ class AuthController extends Controller
                     'message' => 'Admin logged in succesfully.',
                     'token' => $token,
                     'data' => new AdminResource($admin)
-                ]);
+                ], 200);
             }
             return response()->json([
                 'code' => 401,
                 'message' => "You are not an Administrator!"
-            ]);
+            ], 401);
         } else {
             return response()->json([
                 'code' => 401,
                 'message' => "Admin authentication failed."
-            ]);
+            ], 401);
         }
     }
 
@@ -102,7 +112,7 @@ class AuthController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         $latestId = User::where('account_type', '<>', 'Administrator')->max('id') + 1;
@@ -173,7 +183,7 @@ class AuthController extends Controller
         return response()->json([
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name.' account created successfully!',
-        ]);
+        ], 200);
     }
 
     public function login(Request $request)
@@ -188,7 +198,7 @@ class AuthController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         $input = $request->only(['login_details', 'password']);
@@ -200,14 +210,14 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'Incorrect Password!',
-            ]);
+            ], 401);
         }
 
         if (!$user || !Hash::check($request->password, $user->password)) {
             return response()->json([
                 'code' => 401,
                 'message' => "Email or Username doesn't exist",
-            ]);
+            ], 401);
         }
 
          // Determine if the login details are an email or a username
@@ -227,10 +237,19 @@ class AuthController extends Controller
                 return response()->json([
                     'code' => 401,
                     'message' => "Account deactivated, please contact the administrator.",
-                ]);
+                ], 401);
             }
 
             if ($user->account_type <> 'Administrator') {
+                // Get the old token
+                $oldToken = $user->tokens->where('name', 'API TOKEN')->first();
+
+                if($oldToken)
+                {
+                    // Revoke the old token
+                    $oldToken->delete();
+                }
+
                 $token = $user->createToken("API TOKEN")->plainTextToken;
 
                 return response()->json([
@@ -238,7 +257,7 @@ class AuthController extends Controller
                     'message' => "Login Successfully.",
                     'token' => $token,
                     'data' => new UserResource($user)
-                ]);
+                ], 200);
             }
 
             auth()->logout();
@@ -246,12 +265,12 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'You are not a member.',
-            ]);
+            ], 401);
         } else {
             return response()->json([
                 'code' => 401,
                 'message' => 'User authentication failed.',
-            ]);
+            ], 401);
         }
     }
 
@@ -266,7 +285,7 @@ class AuthController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -298,7 +317,7 @@ class AuthController extends Controller
         return response()->json([
             'code' => 200,
             'message' => "We have emailed your password reset code.",
-        ]);
+        ], 200);
     }
 
     public function reset_password(Request $request)
@@ -313,7 +332,7 @@ class AuthController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         if (ResetCodePassword::where('code', '=', $request->code)->exists()) {
@@ -327,7 +346,7 @@ class AuthController extends Controller
                 return response()->json([
                     'code' => 401,
                     'message' => 'Password reset code expired'
-                ]);
+                ], 401);
             }
 
             // find user's email
@@ -345,12 +364,12 @@ class AuthController extends Controller
             return response()->json([
                 'code' => 200,
                 'message' => 'Password has been successfully reset, Please login',
-            ]);
+            ], 200);
         } else {
             return response()->json([
                 'code' => 401,
                 'message' => "Code doesn't exist in our database."
-            ]);
+            ], 401);
         }
     }
 }

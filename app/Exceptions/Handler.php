@@ -40,7 +40,7 @@ class Handler extends ExceptionHandler
                     'code' => 401,
                     'message' =>  str_contains($e->getMessage(), 'The route') ? 'Endpoint not found. If error persists, contact '.config('app.name').' customer care.' : (str_contains($e->getMessage(), 'No query results') ? str_replace(']', '', last(explode('\\', $e->getMessage()))) . ' not found.' : $e->getMessage()),
                     'data' => []
-                ]);
+                ], 401);
             }
         });
         $this->renderable(function (ServiceUnavailableHttpException $e, HttpRequest $request) {
@@ -48,7 +48,7 @@ class Handler extends ExceptionHandler
                 return response([
                     'code' => 401,
                     'message' => 'Server Error. If error persists, contact '.config('app.name').' customer care.'
-                ]);
+                ], 401);
             }
         });
         $this->renderable(function (BadRequestHttpException $e, HttpRequest $request) {
@@ -56,7 +56,7 @@ class Handler extends ExceptionHandler
                 return response([
                     'code' => 401,
                     'message' => 'Invalid request'
-                ]);
+                ], 401);
             }
         });
         $this->renderable(function (ErrorException $e, HttpRequest $request) {
@@ -64,7 +64,7 @@ class Handler extends ExceptionHandler
                 return response([
                     'code' => 401,
                     'message' => 'Failed to get service'
-                ]);
+                ], 401);
             }
         });
         $this->renderable(function (MethodNotAllowedHttpException $e, HttpRequest $request) {
@@ -72,7 +72,7 @@ class Handler extends ExceptionHandler
                 return response([
                     'code' => 401,
                     'message' => 'The method is not supported for this route.'
-                ]);
+                ], 401);
             }
         });
         $this->renderable(function (BadMethodCallException $e, HttpRequest $request) {
@@ -80,7 +80,7 @@ class Handler extends ExceptionHandler
                 return response([
                     'code' => 401,
                     'message' => 'Invalid request. If error persists, contact '.config('app.name').' customer care.'
-                ]);
+                ], 401);
             }
         });
     }

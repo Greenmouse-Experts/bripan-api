@@ -31,7 +31,7 @@ Route::get('/login', function () {
 })->name('login');
 Route::group(['middleware' => ['cors', 'json.response']], function () {
     Route::prefix('/auth')->group(function () {
-        Route::post('/admin/login', [AuthController::class, 'admin_login']);
+        Route::post('/login', [AuthController::class, 'admin_login']);
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
 
@@ -67,61 +67,34 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::post('/member/resend/login/details', [AdminController::class, 'member_resend_login_details']);
                 Route::get('/member/view/payments', [AdminController::class, 'member_view_payments']);
 
-                // Zone
-                Route::prefix('/zone')->group(function () {
-                    Route::post('/create', [AdminController::class, 'create_zone']);
-                    Route::post('/update', [AdminController::class, 'update_zone']);
-                    Route::post('/action', [AdminController::class, 'action_zone']);
-                });
+                Route::get('/banks', [AdminController::class, 'banks']);
+                Route::post('/bank/post', [AdminController::class, 'admin_bank_post']);
+                Route::post('/bank/update', [AdminController::class, 'admin_bank_update']);
+                Route::post('/bank/delete', [AdminController::class, 'admin_bank_delete']);
 
-                // Fleet Manager
-                Route::prefix('/fleet-manager')->group(function () {
-                    Route::post('/create', [AdminController::class, 'create_fleet_manager']);
-                });
-                // Field Operator
-                Route::prefix('/field-operator')->group(function () {
-                    Route::post('/create', [AdminController::class, 'create_field_operator']);
-                });
-                // Waste Manager
-                Route::prefix('/waste-manager')->group(function () {
-                    Route::post('/create', [AdminController::class, 'create_waste_manager']);
-                }); 
+                // Payment Setup
+                Route::get('/category', [AdminController::class, 'admin_category']);
+                Route::post('/category/post', [AdminController::class, 'admin_category_post']);
+                Route::post('/category/update', [AdminController::class, 'admin_category_update']);
+                Route::post('/category/delete', [AdminController::class, 'admin_category_delete']);
 
-                // Shop
-                Route::prefix('/shop')->group(function () {
-                    Route::post('/create/category', [AdminController::class, 'create_category']);
-                    Route::get('/get/categories', [AdminController::class, 'get_categories']);
-                    Route::post('/update/category', [AdminController::class, 'update_category']);
-                    Route::post('/action/category', [AdminController::class, 'action_category']);
+                Route::get('/dues', [AdminController::class, 'admin_dues']);
+                Route::post('/dues/post', [AdminController::class, 'admin_dues_post'])->name('admin.post.dues');
+                Route::post('/dues/update', [AdminController::class, 'admin_dues_update'])->name('admin.update.dues');
+                Route::post('/dues/delete', [AdminController::class, 'admin_dues_delete'])->name('admin.delete.dues');
 
-                    Route::post('/create/product', [AdminController::class, 'create_product']);
-                    Route::get('/get/products', [AdminController::class, 'get_products']);
-                    Route::post('/update/product', [AdminController::class, 'update_product']);
-                    Route::post('/action/product', [AdminController::class, 'action_product']);
-                    Route::post('/destroy/product', [AdminController::class, 'destroy_product']);
+                // Events
+                Route::get('/events', [AdminController::class, 'admin_events']);
+                Route::post('/event/post', [AdminController::class, 'admin_event_post']);
+                Route::post('/event/update', [AdminController::class, 'admin_event_update']);
+                Route::post('/event/delete', [AdminController::class, 'admin_event_delete']);
 
-                    Route::post('/add/product/images', [AdminController::class, 'add_product_images']);
-                    Route::post('/destroy/product/image', [AdminController::class, 'destroy_product_image']);
-                });
+                // Announcements
+                Route::get('/announcements', [AdminController::class, 'admin_announcements']);
+                Route::post('/announcements/post', [AdminController::class, 'admin_announcements_post']);
+                Route::post('/announcements/update', [AdminController::class, 'admin_announcements_update']);
+                Route::post('/announcements/delete', [AdminController::class, 'admin_announcements_delete']);
 
-                // Application Rating
-                Route::prefix('/ratings')->group(function () {
-                    Route::post('/list', [AdminController::class, 'rating_list']);
-                    Route::get('/view', [AdminController::class, 'view_application_rating']);
-                });
-
-                Route::get('/get/users/transaction/histories', [AdminController::class, 'get_users_transaction_histories']);
-                Route::any('/special/request/flat/rate', [AdminController::class, 'special_request_flat_rate']);
-                Route::any('/get/all/application/rating', [AdminController::class, 'get_all_application_rating']);
-
-                Route::prefix('/schedule-requests')->group(function () {
-                    Route::get('/get', [AdminController::class, 'get_schedule_requests']);
-                    Route::get('/view/residence', [AdminController::class, 'view_residence']);
-                });
-
-                Route::prefix('/special-requests')->group(function () {
-                    Route::get('/get', [AdminController::class, 'get_special_requests']);
-                });
             });
         });
     });

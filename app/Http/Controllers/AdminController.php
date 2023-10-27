@@ -5,6 +5,11 @@ namespace App\Http\Controllers;
 use App\Http\Resources\AdminResource;
 use App\Http\Resources\NotificationResource;
 use App\Http\Resources\UserResource;
+use App\Models\Announcement;
+use App\Models\Bank;
+use App\Models\Category;
+use App\Models\Due;
+use App\Models\Event;
 use App\Models\Notification;
 use App\Models\Transaction;
 use App\Models\User;
@@ -50,7 +55,7 @@ class AdminController extends Controller
                     'code' => 422,
                     'message' => 'Please see errors parameter for all errors.',
                     'errors' => $validator->errors()
-                ]);
+                ], 422);
             }
 
             $admin->update([
@@ -64,7 +69,7 @@ class AdminController extends Controller
             'code' => 200,
             'message' => 'Profile updated successfully.',
             'data' => new AdminResource($admin)
-        ]);
+        ], 200);
     }
 
     public function update_password(Request $request)
@@ -79,7 +84,7 @@ class AdminController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         $admin = User::find(Auth::user()->id);
@@ -89,7 +94,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => "Old password doesn't match, try again.",
-            ]);
+            ], 401);
         }
 
         $admin->password = Hash::make($request->new_password);
@@ -108,7 +113,7 @@ class AdminController extends Controller
             'code' => 200,
             'message' => 'Password Updated Successfully',
             'data' => new AdminResource($admin)
-        ]);
+        ], 200);
     }
 
     public function upload_profile_picture(Request $request)
@@ -126,7 +131,7 @@ class AdminController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         //User
@@ -157,7 +162,7 @@ class AdminController extends Controller
             'code' => 200,
             'message' => 'Profile Picture Uploaded Successfully!',
             'data' => new AdminResource($admin)
-        ]);
+        ], 200);
     }
 
     public function get_all_notifications()
@@ -168,7 +173,7 @@ class AdminController extends Controller
             'code' => 200,
             'message' => 'All notifications retrieved.',
             'data' => NotificationResource::collection($notifications)
-        ]);
+        ], 200);
     }
 
     public function get_all_unread_notifications()
@@ -179,7 +184,7 @@ class AdminController extends Controller
             'code' => 200,
             'message' => 'All unread notifications retrieved.',
             'data' => NotificationResource::collection($userUnreadNotifications)
-        ]);
+        ], 200);
     }
 
     public function count_unread_notifications()
@@ -190,7 +195,7 @@ class AdminController extends Controller
             'code' => 200,
             'message' => 'Count all unread notifications.',
             'data' => $userCountUnreadNotifications
-        ]);
+        ], 200);
     }
 
     public function read_notification(Request $request)
@@ -202,7 +207,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'Not found in our database.'
-            ]);
+            ], 401);
         }
 
         if($notification->user_id !== Auth::user()->id)
@@ -210,7 +215,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => "Notification doesn't belong to you."
-            ]);
+            ], 401);
         }
         
         $notification->update([
@@ -220,7 +225,7 @@ class AdminController extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'Notification read successfully.'
-        ]);
+        ], 200);
     }
 
     public function delete_notification(Request $request)
@@ -232,7 +237,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'Not found in our database.'
-            ]);
+            ], 401);
         }
 
         $notification->delete();
@@ -240,7 +245,7 @@ class AdminController extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'Notification deleted successfully.'
-        ]);
+        ], 200);
     }
 
     public function get_all_member(Request $request)
@@ -250,10 +255,10 @@ class AdminController extends Controller
                 ->getData(true);
 
         return response()->json([
-            'success' => true,
+            'code' => 200,
             'message' => 'All members retrieved successfully.',
             'data' => $users
-        ]);
+        ], 200);
     }
 
     /**
@@ -298,7 +303,7 @@ class AdminController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         $existing = User::where('email', $request->email)->first();
@@ -308,7 +313,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'Email already exists.'
-            ]);
+            ], 401);
         }
 
         $latestId = User::where('account_type', '<>', 'Administrator')->max('id') + 1;
@@ -344,7 +349,7 @@ class AdminController extends Controller
             'account_type' => $request->account_type,
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
-            'username' => config('app.name').strtoupper(substr($request->first_name, 0, 2)).$customId,
+            'username' => $request->username ?? config('app.name').strtoupper(substr($request->first_name, 0, 2)).$customId,
             'email' => $request->email,
             'email_verified_at' => now(),
             'password' => Hash::make($password),
@@ -380,7 +385,7 @@ class AdminController extends Controller
         return response()->json([
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name.' account created successfully!',
-        ]);
+        ], 200);
     }
 
     public function member_activate(Request $request)
@@ -392,7 +397,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'No user with the ID - '.$request->user_id.' in our database.',
-            ]);
+            ], 401);
         }
 
         $user->update([
@@ -402,7 +407,7 @@ class AdminController extends Controller
         return response()->json([
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name. ' account activated successfully!'
-        ]);
+        ], 200);
     }
 
     public function member_deactivate(Request $request)
@@ -414,7 +419,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'No user with the ID - '.$request->user_id.' in our database.',
-            ]);
+            ], 401);
         }
 
         $user->update([
@@ -424,7 +429,7 @@ class AdminController extends Controller
         return response()->json([
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name. ' account deactivated successfully!'
-        ]);
+        ], 200);
     }
 
     // public function member_delete($id)
@@ -463,7 +468,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'No user with the ID - '.$request->user_id.' in our database.',
-            ]);
+            ], 401);
         }
 
         $validator = Validator::make(request()->all(), [
@@ -479,13 +484,38 @@ class AdminController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
+        }
+
+        if (request()->hasFile('passport')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->passport->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $passport = cloudinary()->uploadFile($request->passport->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
+        if (request()->hasFile('certificates')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->certificates->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $certificates = cloudinary()->uploadFile($request->certificates->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
         }
 
         if($user->email == $request->email)
         {
             $user->update([
                 'account_type' => $request->account_type,
+                'username' => $request->username,
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'phone_number' => $request->phone_number,
@@ -493,7 +523,14 @@ class AdminController extends Controller
                 'marital_status' => $request->marital_status,
                 'state' => $request->state,
                 'address' =>  $request->address,
-            ]);
+                'passport' => $passport ?? $user->passport,
+                'certificates' => $certificates ?? $user->certificates,
+                'place_business_employment' => $request->place_business_employment,
+                'nature_business_employment' => $request->nature_business_employment,
+                'membership_professional_bodies' => $request->membership_professional_bodies,
+                'previous_insolvency_work_experience' => $request->previous_insolvency_work_experience,
+                'referee_email_address' => $request->referee_email_address,
+            ]);  
         } else {
             //Validate Request
             $validator = Validator::make(request()->all(), [
@@ -505,11 +542,12 @@ class AdminController extends Controller
                     'code' => 422,
                     'message' => 'Please see errors parameter for all errors.',
                     'errors' => $validator->errors()
-                ]);
+                ], 422);
             }
 
             $user->update([
                 'account_type' => $request->account_type,
+                'username' => $request->username,
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'email' => $request->email,
@@ -518,13 +556,20 @@ class AdminController extends Controller
                 'marital_status' => $request->marital_status,
                 'state' => $request->state,
                 'address' =>  $request->address,
-            ]); 
+                'passport' => $passport ?? $user->passport,
+                'certificates' => $certificates ?? $user->certificates,
+                'place_business_employment' => $request->place_business_employment,
+                'nature_business_employment' => $request->nature_business_employment,
+                'membership_professional_bodies' => $request->membership_professional_bodies,
+                'previous_insolvency_work_experience' => $request->previous_insolvency_work_experience,
+                'referee_email_address' => $request->referee_email_address,
+            ]);  
         }
 
         return response()->json([
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name. ' profile updated successfully!'
-        ]);
+        ], 200);
     }
 
     public function member_update_password(Request $request)
@@ -536,7 +581,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'No user with the ID - '.$request->user_id.' in our database.',
-            ]);
+            ], 401);
         }
 
         $validator = Validator::make(request()->all(), [
@@ -548,7 +593,7 @@ class AdminController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
         $user->password = Hash::make($request->new_password);
@@ -570,7 +615,7 @@ class AdminController extends Controller
         return response()->json([
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name. ' password updated successfully.'
-        ]);
+        ], 200);
     }
 
     public function member_update_profile_picture(Request $request)
@@ -582,7 +627,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'No user with the ID - '.$request->user_id.' in our database.',
-            ]);
+            ], 401);
         }
 
         $validator = Validator::make(request()->all(), [
@@ -594,7 +639,7 @@ class AdminController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
        $token = explode('/', $user->avatar);
@@ -622,7 +667,7 @@ class AdminController extends Controller
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name. ' profile picture uploaded successfully.',
             'avatar' => $user->avatar
-        ]);
+        ], 200);
     }
 
     public function member_resend_login_details(Request $request)
@@ -634,7 +679,7 @@ class AdminController extends Controller
             return response()->json([
                 'code' => 401,
                 'message' => 'No user with the ID - '.$request->user_id.' in our database.',
-            ]);
+            ], 401);
         }
 
         /** Store information to include in mail in $data as an array */
@@ -654,7 +699,7 @@ class AdminController extends Controller
         return response()->json([
             'code' => 200,
             'message' => $user->first_name.' '.$user->last_name. ' login details resend successfully.'
-        ]); 
+        ], 200); 
     }
 
     public function member_view_payments($id)
@@ -669,5 +714,627 @@ class AdminController extends Controller
             'payments' => $payments,
             'user' => $user
         ]);
+    }
+
+    public function banks()
+    {
+        $banks = Bank::latest()->where('status', 'Active')->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Bank Information Retrieved Successfully.',
+            'data' => $banks
+        ], 200);
+    }
+
+    public function admin_bank_post(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'account_name' => ['required', 'string', 'max:255'],
+            'account_number' => ['required', 'numeric'],
+            'bank_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        Bank::create([
+            'account_name' => $request->account_name,
+            'account_number' => $request->account_number,
+            'bank_name' => $request->bank_name,
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Added successfully!',
+        ], 200);
+    }
+
+    public function admin_bank_update(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'bank_id' => ['required', 'numeric'],
+            'account_name' => ['required', 'string', 'max:255'],
+            'account_number' => ['required', 'numeric'],
+            'bank_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $bank = Bank::find($request->bank_id);
+
+        if(!$bank)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'Not found in our database.',
+            ], 401);
+        }
+
+        $bank->update([
+            'account_name' => $request->account_name,
+            'account_number' => $request->account_number,
+            'bank_name' => $request->bank_name,
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Updated successfully!',
+        ], 200);
+    }
+
+    public function admin_bank_delete(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'bank_id' => ['required', 'numeric'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $bank = Bank::find($request->bank_id);
+
+        if(!$bank)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'Not found in our database.',
+            ], 401);
+        }
+
+        $bank->update([
+            'status' => 'Inactive'
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Deleted Successfully!',
+        ], 200);
+    }
+
+    // Category
+    public function admin_category()
+    {
+        $categories = Category::latest()->where('status', 'Active')->with('bank')->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Payment Category Retrieved Successfully.',
+            'data' => $categories
+        ], 200);
+    }
+
+    public function admin_category_post(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'bank_id' => ['nullable', 'integer', 'exists:banks,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        Category::create([
+            'name' => $request->name,
+            'bank_id' => $request->bank_id
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Created successfully!',
+        ], 200);
+    }
+
+    public function admin_category_update(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'category_id' => ['required', 'numeric'],
+            'name' => ['required', 'string', 'max:255'],
+            'user_id' => ['nullable', 'integer', 'exists:banks,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $category = Category::find($request->category_id);
+
+        $category->update([
+            'name' => $request->name,
+            'bank_id' => $request->bank_id
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Updated successfully!',
+        ], 200);
+    }
+
+    public function admin_category_delete(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'category_id' => ['required', 'numeric'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $category = Category::find($request->category_id);
+
+        if(!$category)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'Not found in our database.',
+            ], 401);
+        }
+
+        $category->update([
+            'status' => 'Inactive'
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Deleted Successfully!',
+        ], 200);
+    }
+
+    public function admin_dues()
+    {
+        $dues = Due::latest()->where('status', 'Active')->with('category')->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Payment Dues Retrieved Successfully.',
+            'data' => $dues
+        ], 200);
+    }
+
+    public function admin_dues_post(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'payment_category_id' => ['required', 'numeric', 'exists:categories,id'],
+            'description' => ['required', 'string', 'max:255'],
+            'amount' => ['required', 'numeric'],
+            'start_date' => ['required', 'date_format:d/m/Y'],
+            'end_date' => ['required', 'date_format:d/m/Y'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        Due::create([
+            'payment_category_id' => $request->payment_category_id,
+            'description' => $request->description,
+            'amount' => $request->amount,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Created successfully!',
+        ], 200);
+    }
+
+    public function admin_dues_transaction_update(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'status' => ['required', 'string', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        $finder = Crypt::decrypt($id);
+
+        $transaction = Transaction::find($finder);
+
+        $transaction->update([
+            'status' => $request->status
+        ]);
+
+        $message = new Notification();
+        $message->to = $transaction->user_id;
+        $message->title = 'Due Payment';
+        $message->body = 'You payment has been reviewd.';
+        $message->save();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Updated successfully!',
+        ]);
+
+    }
+
+    public function admin_dues_update(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'due_id' => ['required', 'numeric', 'exists:dues,id'],
+            'payment_category_id' => ['required', 'numeric', 'exists:categories,id'],
+            'description' => ['required', 'string', 'max:255'],
+            'amount' => ['required', 'numeric'],
+            'start_date' => ['required', 'date_format:d/m/Y'],
+            'end_date' => ['required', 'date_format:d/m/Y'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $due = Due::find($request->due_id);
+
+        $due->update([
+            'payment_category_id' => $request->payment_category_id,
+            'description' => $request->description,
+            'amount' => $request->amount,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Updated successfully!',
+        ], 200);
+    }
+
+    public function admin_dues_delete(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'due_id' => ['required', 'numeric'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $due = Due::find($request->due_id);
+
+        if(!$due)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'Not found in our database.',
+            ], 401);
+        }
+
+        $due->update([
+            'status' => 'Inactive'
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Deleted Successfully!',
+        ], 200);
+    }
+
+    public function admin_payments_approved()
+    {
+        $approvedPayments = Transaction::latest()->where('status', 'success')->get();
+
+        return view('admin.payment.approved', [
+            'approvedPayments' => $approvedPayments
+        ]);
+    }
+
+    public function admin_payments_pending()
+    {
+        $pendingPayments = Transaction::latest()->where('status', 'pending')->get();
+
+        return view('admin.payment.pending', [
+            'pendingPayments' => $pendingPayments
+        ]);
+    }
+
+    // Event
+    public function admin_events()
+    {
+        $events = Event::latest()->where('status', 'Active')->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Events Retrieved Successfully.',
+            'data' => $events
+        ], 200);
+    }
+
+    public function admin_event_post(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'start_date' => 'required|date_format:d/m/Y',
+            'end_date' => 'required|date_format:d/m/Y',
+            'location' => 'required|string',
+            'organizer' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        Event::create([
+            'title' => $request->title,
+            'description' => $request->description,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'location' => $request->title,
+            'organizer' => $request->organizer,
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Event created successfully!',
+        ], 200);
+    }
+
+    public function admin_event_update(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'event_id' => ['required', 'numeric', 'exists:events,id'],
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'start_date' => 'required|date_format:d/m/Y',
+            'end_date' => 'required|date_format:d/m/Y',
+            'location' => 'required|string',
+            'organizer' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $event = Event::find($request->event_id);
+
+        $event->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'location' => $request->title,
+            'organizer' => $request->organizer,
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Updated successfully!',
+        ], 200);
+    }
+
+    public function admin_event_delete(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'event_id' => ['required', 'numeric'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $event = Event::find($request->event_id);
+
+        if(!$event)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'Not found in our database.',
+            ], 401);
+        }
+
+        $event->delete();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Deleted Successfully!',
+        ], 200);
+    }
+
+    // Announcement
+    public function admin_announcements()
+    {
+        $announcements = Announcement::latest()->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Annoucements Retrieved Successfully.',
+            'data' => $announcements
+        ], 200);
+    }
+
+    public function admin_announcements_post(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'title' => ['required', 'string', 'max:255'],
+            'content' => 'required|string',
+            'image' => 'nullable|mimes:jpeg,png,jpg,gif|max:2048', // Define image validation rules
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Handle image upload
+        if (request()->hasFile('image')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->image->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $image = cloudinary()->uploadFile($request->image->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
+        Announcement::create([
+            'title' => $request->title,
+            'content' => $request->content,
+            'image' => $image ?? null,
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Announcement created successfully!',
+        ], 200);
+    }
+
+    public function admin_announcements_update(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'announcement_id' => ['required', 'numeric', 'exists:announcements,id'],
+            'title' => ['required', 'string', 'max:255'],
+            'content' => 'required|string',
+            'image' => 'nullable|mimes:jpeg,png,jpg,gif|max:2048', // Define image validation rules
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $announcement = Announcement::find($request->announcement_id);
+
+        // Handle image upload
+        if (request()->hasFile('image')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->image->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $image = cloudinary()->uploadFile($request->image->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
+        $announcement->update([
+            'title' => $request->title,
+            'content' => $request->content,
+            'image' => $image ?? null,
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Announcement updated successfully!',
+        ], 200);
+    }
+
+    public function admin_announcements_delete(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'announcement_id' => ['required', 'numeric'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $announcement = Announcement::find($request->announcement_id);
+
+        if(!$announcement)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'Not found in our database.',
+            ], 401);
+        }
+
+        $announcement->delete();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Deleted Successfully!',
+        ], 200);
     }
 }
