@@ -32,7 +32,7 @@ Route::get('/login', function () {
 })->name('login');
 Route::group(['middleware' => ['cors', 'json.response']], function () {
     Route::prefix('/auth')->group(function () {
-        Route::post('/login', [AuthController::class, 'admin_login']);
+        Route::post('/admin/login', [AuthController::class, 'admin_login']);
         Route::post('/register', [AuthController::class, 'register']);
         Route::post('/login', [AuthController::class, 'login']);
 
