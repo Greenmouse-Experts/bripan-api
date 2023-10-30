@@ -31,7 +31,7 @@ class AdminSeeder extends Seeder
                 'account_type' => 'Administrator',
                 'first_name' => 'BRIPAN',
                 'last_name' => 'Support',
-                'username' => 'super-admin',
+                'username' => 'sub-admin',
                 'email' => 'admin@org.ng',
                 'email_verified_at' => now(),
                 'password' => bcrypt('Password'),
