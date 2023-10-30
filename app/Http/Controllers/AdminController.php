@@ -702,18 +702,44 @@ class AdminController extends Controller
         ], 200); 
     }
 
-    public function member_view_payments($id)
+    public function member_view(Request $request)
     {
-        $finder = Crypt::decrypt($id);
+        $user = User::find($request->user_id);
 
-        $payments = Transaction::latest()->where('user_id', $finder)->get();
+        if(!$user)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'No user with the ID - '.$request->user_id.' in our database.',
+            ], 401);
+        }
 
-        $user = User::find($finder);
+        return response()->json([
+            'code' => 200,
+            'message' => $user->first_name.' '.$user->last_name. ' account retrieved successfully!',
+            'data' => new UserResource($user)
+        ], 200);
+    }
 
-        return view('admin.member.view_payments', [
-            'payments' => $payments,
-            'user' => $user
-        ]);
+    public function member_view_payments(Request $request)
+    {
+        $user = User::find($request->user_id);
+
+        if(!$user)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'No user with the ID - '.$request->user_id.' in our database.',
+            ], 401);
+        }
+
+        $payments = Transaction::latest()->where('user_id', $user->id)->with('due')->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => $user->first_name.' '.$user->last_name. ' account retrieved successfully!',
+            'data' => $payments
+        ], 200);
     }
 
     public function banks()
@@ -972,10 +998,32 @@ class AdminController extends Controller
         ], 200);
     }
 
+    public function admin_dues_view_payments(Request $request)
+    {
+        $due = Due::find($request->due_id);
+
+        if(!$due)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'No due with the ID - '.$request->due_id.' in our database.',
+            ], 401);
+        }
+
+        $payments = $due->load(['category', 'transactions']);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Payments retrieved successfully!',
+            'data' => $payments
+        ], 200);
+    }
+
     public function admin_dues_transaction_update(Request $request)
     {
         $validator = Validator::make(request()->all(), [
             'status' => ['required', 'string', 'max:255'],
+            'transaction_id' => ['required', 'numeric', 'exists:transactions,id'],
         ]);
 
         if ($validator->fails()) {
@@ -983,27 +1031,27 @@ class AdminController extends Controller
                 'code' => 422,
                 'message' => 'Please see errors parameter for all errors.',
                 'errors' => $validator->errors()
-            ]);
+            ], 422);
         }
 
-        $finder = Crypt::decrypt($id);
-
-        $transaction = Transaction::find($finder);
+        $transaction = Transaction::find($request->transaction_id);
 
         $transaction->update([
             'status' => $request->status
         ]);
 
-        $message = new Notification();
-        $message->to = $transaction->user_id;
-        $message->title = 'Due Payment';
-        $message->body = 'You payment has been reviewd.';
-        $message->save();
+        Notification::create([
+            'user_id' => Auth::user()->id,
+            'title' => 'Due Payment',
+            'body' => 'You payment has been reviewed.',
+            'image' => config('app.url').'/favicon.png',
+            'type' => 'Due Payment'
+        ]);
 
         return response()->json([
             'code' => 200,
             'message' => 'Updated successfully!',
-        ]);
+        ], 200);
 
     }
 
@@ -1109,6 +1157,7 @@ class AdminController extends Controller
     public function admin_event_post(Request $request)
     {
         $validator = Validator::make(request()->all(), [
+            'image' => 'nullable|mimes:jpeg,png,jpg,gif|max:2048', // Define image validation rules
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'start_date' => 'required|date_format:d/m/Y',
@@ -1125,7 +1174,21 @@ class AdminController extends Controller
             ], 422);
         }
 
+        // Handle image upload
+        if (request()->hasFile('image')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->image->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $image = cloudinary()->uploadFile($request->image->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
         Event::create([
+            'image' => $image ?? null,
             'title' => $request->title,
             'description' => $request->description,
             'start_date' => $request->start_date,
@@ -1150,6 +1213,7 @@ class AdminController extends Controller
             'end_date' => 'required|date_format:d/m/Y',
             'location' => 'required|string',
             'organizer' => 'required|string',
+            'image' => 'nullable|mimes:jpeg,png,jpg,gif|max:2048', // Define image validation rules
         ]);
 
         if ($validator->fails()) {
@@ -1162,6 +1226,25 @@ class AdminController extends Controller
 
         $event = Event::find($request->event_id);
 
+        // Handle image upload
+        if (request()->hasFile('image')) {
+            if($event->image)
+            {
+                $token = explode('/', $event->image);
+                $token2 = explode('.', $token[sizeof($token)-1]);
+                cloudinary()->destroy(config('app.name').'/api/'.$token2[0]);
+            }
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->image->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $image = cloudinary()->uploadFile($request->image->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
         $event->update([
             'title' => $request->title,
             'description' => $request->description,
@@ -1169,6 +1252,7 @@ class AdminController extends Controller
             'end_date' => $request->end_date,
             'location' => $request->title,
             'organizer' => $request->organizer,
+            'image' => $image ?? $event->image
         ]);
 
         return response()->json([
@@ -1303,7 +1387,7 @@ class AdminController extends Controller
         $announcement->update([
             'title' => $request->title,
             'content' => $request->content,
-            'image' => $image ?? null,
+            'image' => $image ?? $announcement->image,
         ]);
 
         return response()->json([

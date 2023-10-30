@@ -13,6 +13,15 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->onDelete('cascade');
+            $table->foreignId('due_id')->onDelete('cascade');
+            $table->double('amount')->nullable();
+            $table->string('receipt')->nullable();
+            $table->string('ref_id')->nullable();
+            $table->string('paid_at')->nullable();
+            $table->string('channel')->nullable();
+            $table->string('ip_address')->nullable();
+            $table->string('status')->nullable();
             $table->timestamps();
         });
     }

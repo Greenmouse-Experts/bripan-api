@@ -21,4 +21,9 @@ class Due extends Model
     {
         return $this->hasOne(Category::class, 'id', 'payment_category_id');
     }
+
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class, 'due_id', 'id');
+    }
 }

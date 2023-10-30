@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\NotificationResource;
 use App\Models\Announcement;
+use App\Models\Due;
 use App\Models\Event;
 use App\Models\Notification;
+use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -320,4 +322,182 @@ class MemberController extends Controller
         ], 200);
     }
 
+    // Payment
+    public function payments()
+    {
+        $id = Auth::user()->id;
+        
+        $dues = Due::latest()
+                ->with(['transactions' => function ($query) use ($id) {
+                    $query->where('user_id', $id);
+                }])
+                ->get();
+
+        // Filter dues with empty transactions for the specific user
+         $duesWithEmptyTransactions = $dues->filter(function ($due) {
+            return $due->transactions->isEmpty();
+        });
+
+        // Count the filtered dues
+        $countOfDuesWithEmptyTransactions = $duesWithEmptyTransactions;
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Events Retrieved Successfully.',
+            'data' => $countOfDuesWithEmptyTransactions->load('category')
+        ], 200);
+    }
+
+    public function handleGatewayCallback(Request $request)
+    {
+        $SECRET_KEY = config('app.paystack_secret_key');
+        
+        $curl = curl_init();
+
+        $validator = Validator::make(request()->all(), [
+            'due_id' => ['required'],
+            'ref_id' => ['required','string'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.paystack.co/transaction/verify/" . rawurlencode($request->ref_id),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer $SECRET_KEY",
+                "Cache-Control: no-cache",
+            ),
+        ));
+        
+        $paystack_response = curl_exec($curl);
+        $err = curl_error($curl);
+        curl_close($curl);
+            
+        $result = json_decode($paystack_response);
+        
+        // return $result;
+        if ($err) {
+            // there was an error contacting the Paystack API
+            return response()->json([
+                'code' => 401,
+                'message' => 'Transaction failed.'
+            ], 401);
+
+        } else {
+
+            Transaction::create([
+                'user_id' => Auth::user()->id,
+                'due_id' => $request->due_id,
+                'amount' => ($result->data->amount / 100),
+                'ref_id' => $result->data->reference,
+                'paid_at' => $result->data->paid_at,
+                'channel' => $result->data->channel,
+                'ip_address' => $result->data->ip_address,
+                'status' => $result->data->status,
+            ]);
+
+            Notification::create([
+                'user_id' => Auth::user()->id,
+                'title' => 'Due Payment',
+                'body' => 'You have successfully made a payment.',
+                'image' => config('app.url').'/favicon.png',
+                'type' => 'Due Payment'
+            ]);
+
+            return response()->json([
+                'code' => 200,
+                'message' => 'Payment Completed.'
+            ], 200);
+        }
+    }
+
+    public function uploadReceipt(Request $request)
+    {
+        $validator = Validator::make(request()->all(), [
+            'receipt' => 'required|mimes:jpeg,png,jpg,gif,pdf|max:2048', // Define receipt validation rules
+            'due_id' => ['required', 'integer', 'exists:dues,id'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $due = Due::find($request->due_id);
+
+        // Handle image upload
+        if (request()->hasFile('receipt')) {
+            $file = str_replace(' ', '', uniqid(5).'-'.$request->receipt->getClientOriginalName());
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+
+            $receipt = cloudinary()->uploadFile($request->receipt->getRealPath(),
+            [
+                'folder' => config('app.name').'/api',
+                "public_id" => $filename,
+                "use_filename" => TRUE
+            ])->getSecurePath();
+        }
+
+        Transaction::create([
+            'user_id' => Auth::user()->id,
+            'due_id' => $due->id,
+            'amount' => $due->amount,
+            'receipt' => $receipt ?? null,
+            'ref_id' => 'manual payment',
+            'paid_at' => now(),
+            'channel' => 'manual payment',
+            'ip_address' => config('app.name'),
+            'status' => 'pending',
+        ]);
+
+        Notification::create([
+            'user_id' => Auth::user()->id,
+            'title' => 'Due Payment',
+            'body' => 'You have successfully uploaded a payment receipt.',
+            'image' => config('app.url').'/favicon.png',
+            'type' => 'Due Payment'
+        ]);
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'Payment Uploaded.',
+        ]); 
+    }
+
+    public function payments_approved()
+    {
+        $approvedPayments = Transaction::latest()->where(['user_id' => Auth::user()->id, 'status' => 'success'])->with('due')->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Approved Payments.',
+            'data' => $approvedPayments
+        ], 200);
+    }
+
+    public function payments_pending()
+    {
+        $pendingPayments = Transaction::latest()->where(['user_id' => Auth::user()->id, 'status' => 'pending'])->with('due')->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Pending Payments.',
+            'data' => $pendingPayments
+        ], 200);
+    }
 }

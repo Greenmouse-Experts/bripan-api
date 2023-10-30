@@ -57,23 +57,19 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::post('/delete/notification', [MemberController::class, 'delete_notification']);
 
                 // Payment
-                Route::get('/payments', [MemberController::class, 'payments'])->name('payments');
-                Route::get('/payment/callback', [MemberController::class, 'handleGatewayCallback'])->name('handleGatewayCallback');
-                Route::post('/upload/manual/receipt/{id}', [MemberController::class, 'uploadReceipt'])->name('upload.manual.receipt');
+                Route::get('/payments', [MemberController::class, 'payments']);
+                Route::post('/payment/callback', [MemberController::class, 'handleGatewayCallback']);
+                Route::post('/upload/manual/receipt', [MemberController::class, 'uploadReceipt']);
         
                 // Manage Payments
-                Route::get('/payments/approved', [MemberController::class, 'payments_approved'])->name('payments.approved');
-                Route::get('/payments/pending', [MemberController::class, 'payments_pending'])->name('payments.pending');
+                Route::get('/payments/approved', [MemberController::class, 'payments_approved']);
+                Route::get('/payments/pending', [MemberController::class, 'payments_pending']);
         
                 // Announcements
                 Route::get('/announcements', [MemberController::class, 'announcements']);
 
                 // Events
                 Route::get('/events', [MemberController::class, 'events']);
-        
-                // Contact Us
-                Route::get('/messages', [MemberController::class, 'messages'])->name('messages');
-                Route::post('/send/messages', [MemberController::class, 'send_messages'])->name('send.messages');
             }
         );
 
@@ -101,6 +97,7 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::post('/member/update/profile-picture', [AdminController::class, 'member_update_profile_picture']);
                 Route::post('/member/delete', [AdminController::class, 'member_delete']);
                 Route::post('/member/resend/login/details', [AdminController::class, 'member_resend_login_details']);
+                Route::get('/member/view', [AdminController::class, 'member_view']);
                 Route::get('/member/view/payments', [AdminController::class, 'member_view_payments']);
 
                 Route::get('/banks', [AdminController::class, 'banks']);
@@ -118,6 +115,8 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::post('/dues/post', [AdminController::class, 'admin_dues_post'])->name('admin.post.dues');
                 Route::post('/dues/update', [AdminController::class, 'admin_dues_update'])->name('admin.update.dues');
                 Route::post('/dues/delete', [AdminController::class, 'admin_dues_delete'])->name('admin.delete.dues');
+                Route::get('/dues/view/payments', [AdminController::class, 'admin_dues_view_payments']);
+                Route::post('/dues/update/transaction', [AdminController::class, 'admin_dues_transaction_update']);
 
                 // Events
                 Route::get('/events', [AdminController::class, 'admin_events']);
