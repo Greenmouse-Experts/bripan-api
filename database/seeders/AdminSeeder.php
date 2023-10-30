@@ -13,17 +13,30 @@ class AdminSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'membership_id' =>  config('app.name').'-'. date('YmdHis'),
-            'account_type' => 'Administrator',
-            'first_name' => 'BRIPAN',
-            'last_name' => 'Admin',
-            'username' => 'super-admin',
-            'email' => 'admin@bripan.org.ng',
-            'email_verified_at' => now(),
-            'password' => bcrypt('Password'),
-            'current_password' => 'Password',
-            'role' => 'Super Admin',
-        ]);
+        User::create(
+            // [
+            //     'membership_id' =>  config('app.name').'-'. date('YmdHis'),
+            //     'account_type' => 'Administrator',
+            //     'first_name' => 'BRIPAN',
+            //     'last_name' => 'Admin',
+            //     'username' => 'super-admin',
+            //     'email' => 'admin@bripan.org.ng',
+            //     'email_verified_at' => now(),
+            //     'password' => bcrypt('Password'),
+            //     'current_password' => 'Password',
+            //     'role' => 'Super Admin',
+            // ], 
+            [
+                'membership_id' =>  config('app.name').'-'. date('YmdHis'),
+                'account_type' => 'Administrator',
+                'first_name' => 'BRIPAN',
+                'last_name' => 'Support',
+                'username' => 'super-admin',
+                'email' => 'admin@org.ng',
+                'email_verified_at' => now(),
+                'password' => bcrypt('Password'),
+                'current_password' => 'Password',
+                'role' => 'Super Admin',
+            ]);
     }
 }
