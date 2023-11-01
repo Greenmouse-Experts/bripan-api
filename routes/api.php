@@ -121,6 +121,7 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::post('/dues/update', [AdminController::class, 'admin_dues_update'])->name('admin.update.dues');
                 Route::post('/dues/delete', [AdminController::class, 'admin_dues_delete'])->name('admin.delete.dues');
                 Route::get('/dues/view/payments', [AdminController::class, 'admin_dues_view_payments']);
+                Route::get('/dues/all/payments', [AdminController::class, 'admin_dues_all_payments']);
                 Route::post('/dues/update/transaction', [AdminController::class, 'admin_dues_transaction_update']);
 
                 // Events
@@ -137,6 +138,7 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
 
                 // Subscriptions
                 Route::any('/subscription', [AdminController::class, 'subscription']);
+                Route::any('/get/subscription/transactions', [AdminController::class, 'subscription_transaction']);
             });
         });
     });

@@ -1057,6 +1057,21 @@ class AdminController extends Controller
         ], 200);
     }
 
+    public function admin_dues_all_payments()
+    {
+        $payments = Transaction::latest()
+                ->where(function ($query) {
+                    $query->whereNull('subscription_id')
+                        ->orWhere('subscription_id', '');
+                })->with(['user', 'due'])->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Dues payments retrieved successfully!',
+            'data' => $payments
+        ], 200);
+    }
+
     public function admin_dues_transaction_update(Request $request)
     {
         $validator = Validator::make(request()->all(), [
@@ -1506,5 +1521,20 @@ class AdminController extends Controller
                 'message' => 'Updated successfully!',
             ], 200);
         }
+    }
+
+    public function subscription_transaction()
+    {
+        $payments = Transaction::latest()
+            ->where(function ($query) {
+                $query->whereNull('due_id')
+                    ->orWhere('due_id', '');
+            })->with(['user', 'subscription'])->get();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All Subscription payment retrieved successfully!',
+            'data' => $payments
+        ], 200);
     }
 }
