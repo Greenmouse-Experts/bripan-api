@@ -403,6 +403,7 @@ class AdminController extends Controller
             'membership_professional_bodies' => $request->membership_professional_bodies,
             'previous_insolvency_work_experience' => $request->previous_insolvency_work_experience,
             'referee_email_address' => $request->referee_email_address,
+            'status' => 'Unsubscribe'
         ]);  
         
         /** Store information to include in mail in $data as an array */
