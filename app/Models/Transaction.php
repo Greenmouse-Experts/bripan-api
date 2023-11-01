@@ -25,4 +25,9 @@ class Transaction extends Model
     {
         return $this->belongsTo(Due::class, 'due_id', 'id');
     }
+
+    public function subscription()
+    {
+        return $this->belongsTo(Subscription::class, 'subscription_id', 'id');
+    }
 }

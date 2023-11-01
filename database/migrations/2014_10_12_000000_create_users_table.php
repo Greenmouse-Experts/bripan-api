@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('previous_insolvency_work_experience')->nullable();
             $table->string('referee_email_address')->nullable();
             $table->string('role')->nullable();
-            $table->enum('status', ['Active', 'Inactive'])->default('Active')->index();
+            $table->enum('status', ['Active', 'Inactive', 'Pending', 'Unsubscribe'])->default('Active')->index();
             $table->rememberToken();
             $table->timestamps();
         });

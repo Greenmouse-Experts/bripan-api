@@ -26,6 +26,87 @@ class MemberController extends Controller
         $this->middleware(['auth', 'verified']);
     }
 
+    public function subscription_payment(Request $request)
+    {
+        $SECRET_KEY = config('app.paystack_secret_key');
+        
+        $curl = curl_init();
+
+        $validator = Validator::make(request()->all(), [
+            'subscription_id' => ['required', 'numeric', 'exists:subscriptions,id'],
+            'ref_id' => ['required','string'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 422,
+                'message' => 'Please see errors parameter for all errors.',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => "https://api.paystack.co/transaction/verify/" . rawurlencode($request->ref_id),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => "",
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "GET",
+            CURLOPT_HTTPHEADER => array(
+                "Authorization: Bearer $SECRET_KEY",
+                "Cache-Control: no-cache",
+            ),
+        ));
+        
+        $paystack_response = curl_exec($curl);
+        $err = curl_error($curl);
+        curl_close($curl);
+            
+        $result = json_decode($paystack_response);
+        
+        // return $result;
+        if ($err) {
+            // there was an error contacting the Paystack API
+            return response()->json([
+                'code' => 401,
+                'message' => 'Transaction failed.'
+            ], 401);
+
+        } else {
+
+            $user = User::find(Auth::user()->id);
+
+            $user->update([
+                'status' => 'Active'
+            ]);
+            
+            Transaction::create([
+                'user_id' => Auth::user()->id,
+                'subscription_id' => $request->subscription_id,
+                'amount' => ($result->data->amount / 100),
+                'ref_id' => $result->data->reference,
+                'paid_at' => $result->data->paid_at,
+                'channel' => $result->data->channel,
+                'ip_address' => $result->data->ip_address,
+                'status' => $result->data->status,
+            ]);
+
+            Notification::create([
+                'user_id' => Auth::user()->id,
+                'title' => 'Subscription Payment',
+                'body' => 'You have successfully subscribed.',
+                'image' => config('app.url').'/favicon.png',
+                'type' => 'Subscription Payment'
+            ]);
+
+            return response()->json([
+                'code' => 200,
+                'message' => 'Subscription Completed.'
+            ], 200);
+        }
+    }
+
     public function update_profile(Request $request)
     {
         $validator = Validator::make(request()->all(), [

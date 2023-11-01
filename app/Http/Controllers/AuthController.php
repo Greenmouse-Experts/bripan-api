@@ -164,6 +164,7 @@ class AuthController extends Controller
             'membership_professional_bodies' => $request->membership_professional_bodies,
             'previous_insolvency_work_experience' => $request->previous_insolvency_work_experience,
             'referee_email_address' => $request->referee_email_address,
+            'status' => 'Pending'
         ]);  
         
         /** Store information to include in mail in $data as an array */
@@ -237,6 +238,15 @@ class AuthController extends Controller
                 return response()->json([
                     'code' => 401,
                     'message' => "Account deactivated, please contact the administrator.",
+                ], 401);
+            }
+
+            if ($user->status == 'Pending') {
+                auth()->logout();
+
+                return response()->json([
+                    'code' => 401,
+                    'message' => "Please check back, while the adminstrator process your informations.",
                 ], 401);
             }
 

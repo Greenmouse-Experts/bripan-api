@@ -45,37 +45,42 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
         // Member
         Route::prefix('/member')->group(
             function () {
-                Route::post('/profile/update', [MemberController::class, 'update_profile']);
-                Route::post('/profile/update/password', [MemberController::class, 'update_password']);
-                Route::post('/profile/upload/profile-picture', [MemberController::class, 'upload_profile_picture']);
+                Route::post('/subscription/payment', [MemberController::class, 'subscription_payment']);
+                Route::middleware(['isUnsubscribed'])->group(function () {
+                    Route::post('/profile/update', [MemberController::class, 'update_profile']);
+                    Route::post('/profile/update/password', [MemberController::class, 'update_password']);
+                    Route::post('/profile/upload/profile-picture', [MemberController::class, 'upload_profile_picture']);
 
-                // Notifications
-                Route::get('/get/all/notifications', [MemberController::class, 'get_all_notifications']);
-                Route::get('/get/all/unread/notifications', [MemberController::class, 'get_all_unread_notifications']);
-                Route::get('/count/unread/notifications', [MemberController::class, 'count_unread_notifications']);
-                Route::post('/read/notification', [MemberController::class, 'read_notification']);
-                Route::post('/delete/notification', [MemberController::class, 'delete_notification']);
+                    // Notifications
+                    Route::get('/get/all/notifications', [MemberController::class, 'get_all_notifications']);
+                    Route::get('/get/all/unread/notifications', [MemberController::class, 'get_all_unread_notifications']);
+                    Route::get('/count/unread/notifications', [MemberController::class, 'count_unread_notifications']);
+                    Route::post('/read/notification', [MemberController::class, 'read_notification']);
+                    Route::post('/delete/notification', [MemberController::class, 'delete_notification']);
 
-                // Payment
-                Route::get('/payments', [MemberController::class, 'payments']);
-                Route::post('/payment/callback', [MemberController::class, 'handleGatewayCallback']);
-                Route::post('/upload/manual/receipt', [MemberController::class, 'uploadReceipt']);
-        
-                // Manage Payments
-                Route::get('/payments/approved', [MemberController::class, 'payments_approved']);
-                Route::get('/payments/pending', [MemberController::class, 'payments_pending']);
-        
-                // Announcements
-                Route::get('/announcements', [MemberController::class, 'announcements']);
+                    // Payment
+                    Route::get('/payments', [MemberController::class, 'payments']);
+                    Route::post('/payment/callback', [MemberController::class, 'handleGatewayCallback']);
+                    Route::post('/upload/manual/receipt', [MemberController::class, 'uploadReceipt']);
+            
+                    // Manage Payments
+                    Route::get('/payments/approved', [MemberController::class, 'payments_approved']);
+                    Route::get('/payments/pending', [MemberController::class, 'payments_pending']);
+            
+                    // Announcements
+                    Route::get('/announcements', [MemberController::class, 'announcements']);
 
-                // Events
-                Route::get('/events', [MemberController::class, 'events']);
+                    // Events
+                    Route::get('/events', [MemberController::class, 'events']);
+                });
             }
         );
 
         // Admin authentication routes
         Route::middleware(['auth', 'isAdmin'])->group(function () {
             Route::prefix('/admin')->group(function () {
+                Route::post('/verify/member', [AdminController::class, 'verify_member']);
+
                 Route::post('/profile/update', [AdminController::class, 'update_profile']);
                 Route::post('/profile/update/password', [AdminController::class, 'update_password']);
                 Route::post('/profile/upload/profile-picture', [AdminController::class, 'upload_profile_picture']);
@@ -130,6 +135,8 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
                 Route::post('/announcements/update', [AdminController::class, 'admin_announcements_update']);
                 Route::post('/announcements/delete', [AdminController::class, 'admin_announcements_delete']);
 
+                // Subscriptions
+                Route::any('/subscription', [AdminController::class, 'subscription']);
             });
         });
     });

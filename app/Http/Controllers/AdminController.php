@@ -11,6 +11,7 @@ use App\Models\Category;
 use App\Models\Due;
 use App\Models\Event;
 use App\Models\Notification;
+use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -33,6 +34,42 @@ class AdminController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
+    }
+
+    public function verify_member(Request $request)
+    {
+        $user = User::find($request->user_id);
+
+        if(!$user)
+        {
+            return response()->json([
+                'code' => 401,
+                'message' => 'No user with the ID - '.$request->user_id.' in our database.',
+            ], 401);
+        }
+
+        $user->update([
+            'status' => 'Unsubscribe'
+        ]);
+
+        /** Store information to include in mail in $data as an array */
+        $data = array(
+            'name' => $user->first_name.' '.$user->last_name,
+            'email' => $user->email,
+            'username' => $user->username,
+            'membership_id' => $user->membership_id,
+            'password' => $user->current_password
+        );
+
+        /** Send message to the user */
+        Mail::send('emails.verifiedMember', $data, function ($m) use ($data) {
+            $m->to($data['email'])->subject('Your '.config('app.name').' Account Has Been Successfully Activated');
+        });
+
+        return response()->json([
+            'code' => 200,
+            'message' => $user->first_name.' '.$user->last_name. ' account has been successfully activated.'
+        ], 200); 
     }
 
     public function update_profile(Request $request)
@@ -733,7 +770,7 @@ class AdminController extends Controller
             ], 401);
         }
 
-        $payments = Transaction::latest()->where('user_id', $user->id)->with('due')->get();
+        $payments = Transaction::latest()->where('user_id', $user->id)->with(['due', 'subscription'])->get();
 
         return response()->json([
             'code' => 200,
@@ -1426,5 +1463,47 @@ class AdminController extends Controller
             'code' => 200,
             'message' => 'Deleted Successfully!',
         ], 200);
+    }
+
+    // Subscription
+    public function subscription(Request $request)
+    {
+        if ($request->isMethod('get'))
+        {
+            $subscriptions = Subscription::latest()->get();
+
+            return response()->json([
+                'code' => 200,
+                'message' => 'All Subscription Retrieved Successfully.',
+                'data' => $subscriptions
+            ], 200);
+        }
+
+        if ($request->isMethod('post'))
+        {
+            $validator = Validator::make(request()->all(), [
+                'subscription_id' => ['required', 'numeric', 'exists:subscriptions,id'],
+                'amount' => ['required', 'numeric'],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'message' => 'Please see errors parameter for all errors.',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $subscription = Subscription::find($request->subscription_id);
+
+            $subscription->update([
+                'amount' => $request->amount,
+            ]);
+
+            return response()->json([
+                'code' => 200,
+                'message' => 'Updated successfully!',
+            ], 200);
+        }
     }
 }

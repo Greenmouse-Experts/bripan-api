@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
-class AdminMiddleware
+class UnsubscribedMiddleware
 {
     /**
      * Handle an incoming request.
@@ -16,13 +16,13 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user()->account_type == 'Administrator'){
-            return $next($request);
-        } else {
+        if (Auth::user()->status == 'Unsubscribe'){
             return response()->json([
                 'code' => 401,
-                'message' => 'Unauthorized!'
+                'message' => 'Please proceed with payments and access our services seamlessly.'
             ], 401);
+        } else {
+            return $next($request);
         }
     }
 }
