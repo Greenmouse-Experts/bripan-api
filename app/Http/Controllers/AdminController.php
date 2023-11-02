@@ -36,6 +36,15 @@ class AdminController extends Controller
         $this->middleware(['auth', 'verified']);
     }
 
+    public function profile()
+    {
+        return response()->json([
+            'code' => 200,
+            'message' => "Profile retrieved successfully.",
+            'data' => new AdminResource(Auth::user())
+        ], 200);
+    }
+
     public function verify_member(Request $request)
     {
         $user = User::find($request->user_id);

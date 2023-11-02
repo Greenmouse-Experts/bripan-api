@@ -46,6 +46,7 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
         Route::prefix('/member')->group(
             function () {
                 Route::post('/subscription/payment', [MemberController::class, 'subscription_payment']);
+                Route::get('/profile', [MemberController::class, 'profile']);
                 Route::middleware(['isUnsubscribed'])->group(function () {
                     Route::post('/profile/update', [MemberController::class, 'update_profile']);
                     Route::post('/profile/update/password', [MemberController::class, 'update_password']);
@@ -79,6 +80,7 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
         // Admin authentication routes
         Route::middleware(['auth', 'isAdmin'])->group(function () {
             Route::prefix('/admin')->group(function () {
+                Route::get('/profile', [AdminController::class, 'profile']);
                 Route::post('/verify/member', [AdminController::class, 'verify_member']);
 
                 Route::post('/profile/update', [AdminController::class, 'update_profile']);

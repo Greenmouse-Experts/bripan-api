@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Resources\NotificationResource;
+use App\Http\Resources\UserResource;
 use App\Models\Announcement;
 use App\Models\Due;
 use App\Models\Event;
@@ -24,6 +25,15 @@ class MemberController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
+    }
+
+    public function profile()
+    {
+        return response()->json([
+            'code' => 200,
+            'message' => "Profile retrieved successfully.",
+            'data' => new UserResource(Auth::user())
+        ], 200);
     }
 
     public function subscription_payment(Request $request)
@@ -80,7 +90,7 @@ class MemberController extends Controller
             $user->update([
                 'status' => 'Active'
             ]);
-            
+
             Transaction::create([
                 'user_id' => Auth::user()->id,
                 'subscription_id' => $request->subscription_id,
