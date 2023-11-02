@@ -88,7 +88,7 @@ class MemberController extends Controller
             $user = User::find(Auth::user()->id);
 
             $user->update([
-                'status' => 'Active'
+                'isSubscribed' => true
             ]);
 
             Transaction::create([

@@ -16,7 +16,7 @@ class UnsubscribedMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (Auth::user()->status == 'Unsubscribe'){
+        if (Auth::user()->isSubscribed == false){
             return response()->json([
                 'code' => 401,
                 'message' => 'Please proceed with payments and access our services seamlessly.'
