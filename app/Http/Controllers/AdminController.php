@@ -58,7 +58,7 @@ class AdminController extends Controller
         }
 
         $user->update([
-            'status' => 'Unsubscribe'
+            'isSubscribed' => true
         ]);
 
         /** Store information to include in mail in $data as an array */
@@ -450,6 +450,23 @@ class AdminController extends Controller
         $user->update([
             'status' => 'Active'
         ]);
+
+        if($user->isSubscribed == false)
+        {
+            /** Store information to include in mail in $data as an array */
+            $data = array(
+                'name' => $user->first_name.' '.$user->last_name,
+                'email' => $user->email,
+                'username' => $user->username,
+                'membership_id' => $user->membership_id,
+                'password' => $user->current_password
+            );
+
+            /** Send message to the user */
+            Mail::send('emails.verifiedMember', $data, function ($m) use ($data) {
+                $m->to($data['email'])->subject('Your '.config('app.name').' Account Has Been Successfully Activated');
+            });
+        }
 
         return response()->json([
             'code' => 200,
