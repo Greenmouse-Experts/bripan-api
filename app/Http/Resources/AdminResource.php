@@ -28,6 +28,7 @@ class AdminResource extends JsonResource
             'email' => $this->email,
             'phone_number' => $this->phone_number,
             'gender' => $this->gender,
+            'avatar' => $this->avatar,
             'passport' => $this->passport,
             'certificates' => $this->certificates,
             'current_password' => $this->current_password,
