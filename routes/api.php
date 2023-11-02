@@ -45,6 +45,7 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
         // Member
         Route::prefix('/member')->group(
             function () {
+                Route::any('/subscription', [MemberController::class, 'subscription']);
                 Route::post('/subscription/payment', [MemberController::class, 'subscription_payment']);
                 Route::get('/profile', [MemberController::class, 'profile']);
                 Route::middleware(['isUnsubscribed'])->group(function () {

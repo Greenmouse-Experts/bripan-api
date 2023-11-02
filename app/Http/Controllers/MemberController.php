@@ -8,6 +8,7 @@ use App\Models\Announcement;
 use App\Models\Due;
 use App\Models\Event;
 use App\Models\Notification;
+use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -25,6 +26,18 @@ class MemberController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
+    }
+
+    // Subscription
+    public function subscription(Request $request)
+    {
+        $subscription = Subscription::where('type', Auth::user()->account_type)->first();
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'My Subscription Plan',
+            'data' => $subscription
+        ], 200);
     }
 
     public function profile()
