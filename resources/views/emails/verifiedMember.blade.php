@@ -369,7 +369,7 @@
                         <hr>
                         <p>Below are your {{config('app.name')}} login details.</p>
                         <hr>
-                        <p>URL: <a href=""></a></p>
+                        <p>URL: <a href="https://portal.bripan.org.ng/">Bripan</a></p>
                         <p>Email: {{$email}}</p>
                         <p>Username: {{$username}}</p>
                         <p>Password: {{$password}}</p>

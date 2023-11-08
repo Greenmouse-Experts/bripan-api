@@ -36,6 +36,77 @@ class AdminController extends Controller
         $this->middleware(['auth', 'verified']);
     }
 
+    public function dashboard(Request $request)
+    {
+        if($request->year)
+        {
+            $year = $request->year; // Replace this with the desired year
+
+            $monthly = User::where('account_type', '<>', 'Administrator')->whereBetween('created_at', ["{$year}-01-01", "{$year}-12-31"])->get();
+        } else {
+            $year = date('Y'); // Replace this with the desired year
+
+            $monthly = User::where('account_type', '<>', 'Administrator')->whereBetween('created_at', ["{$year}-01-01", "{$year}-12-31"])->get();
+        }
+
+        // Initialize an array with all 12 months
+        $allMonthsInOrder = [
+            'January', 'February', 'March', 'April',
+            'May', 'June', 'July', 'August',
+            'September', 'October', 'November', 'December'
+        ];
+
+        // Initialize an array to store counts for each month
+        $monthlyCounts = [];
+
+        // Iterate through the data and count it for each month
+        foreach ($monthly as $record) {
+            $month = date('F', strtotime($record->created_at));
+            
+            // Increment the count for the month
+            if (!isset($monthlyCounts[$month])) {
+                $monthlyCounts[$month] = 1;
+            } else {
+                $monthlyCounts[$month]++;
+            }
+        }
+
+        // Arrange the counts in chronological order
+        $arrangedCounts = [];
+        foreach ($allMonthsInOrder as $month) {
+            $arrangedCounts[$month] = $monthlyCounts[$month] ?? 0;
+        }
+
+        $data = [
+            'totalFellow' => User::where('account_type', 'Fellow')->get()->count(),
+            'totalAssociate' => User::where('account_type', 'Associate')->get()->count(),
+            'totalMembers' => User::where('account_type', '<>', 'Administrator')->get()->count(),
+            'totalSubscribers' => User::where('isSubscribed', true)->get()->count(),
+            'totalDues' => Due::get()->count(),
+            'totalDuesPaid' => Transaction::latest()
+                                ->where(function ($query) {
+                                    $query->whereNull('subscription_id')
+                                        ->orWhere('subscription_id', '');
+                                })->with(['user', 'due'])->get()->sum('amount'),
+            'totalSubscriptionPaid' => Transaction::latest()
+                                        ->where(function ($query) {
+                                            $query->whereNull('due_id')
+                                                ->orWhere('due_id', '');
+                                        })->with(['user', 'subscription'])->get()->sum('amount'),
+            'totalPendingPayment' => Transaction::latest()->where('status', 'pending')->get()->count(),
+            'totalApprovedPayment' => Transaction::latest()->where('status', 'success')->get()->count(),
+            'latestSixMember' => User::latest()->where('account_type', '<>', 'Administrator')->get()->take(5),
+            'latestSixAnnouncement' => Announcement::latest()->get()->take(6),
+            'monthly_members_joined' => $arrangedCounts
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All dashboard details retrieved successfully.',
+            'data' => $data
+        ]); 
+    }
+
     public function profile()
     {
         return response()->json([

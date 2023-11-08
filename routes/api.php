@@ -81,6 +81,7 @@ Route::group(['middleware' => ['cors', 'json.response']], function () {
         // Admin authentication routes
         Route::middleware(['auth', 'isAdmin'])->group(function () {
             Route::prefix('/admin')->group(function () {
+                Route::get('/dashboard', [AdminController::class, 'dashboard']);
                 Route::get('/profile', [AdminController::class, 'profile']);
                 Route::post('/verify/member', [AdminController::class, 'verify_member']);
 

@@ -42,13 +42,6 @@ class AdminResource extends JsonResource
             'referee_email_address' => $this->referee_email_address,
             'role' => $this->role,
             'created_at' => $this->created_at,
-            'totalFellow' => User::where('account_type', 'Fellow')->get()->count(),
-            'totalAssociate' => User::where('account_type', 'Associate')->get()->count(),
-            'totalDues' => Due::get()->count(),
-            'totalPendingPayment' => Transaction::latest()->where('status', 'pending')->get()->count(),
-            'totalApprovedPayment' => Transaction::latest()->where('status', 'success')->get()->count(),
-            'latestSixMember' => User::latest()->get()->take(6),
-            'latestSixAnnouncement' => Announcement::latest()->get()->take(6),
         ];  
     }
 }

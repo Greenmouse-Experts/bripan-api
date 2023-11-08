@@ -448,7 +448,7 @@ class MemberController extends Controller
         return response()->json([
             'code' => 200,
             'message' => 'All Events Retrieved Successfully.',
-            'data' => $countOfDuesWithEmptyTransactions->load('category')
+            'data' => $countOfDuesWithEmptyTransactions->load(['category.bank'])
         ], 200);
     }
 
