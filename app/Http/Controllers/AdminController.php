@@ -14,6 +14,7 @@ use App\Models\Notification;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
@@ -23,6 +24,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class AdminController extends Controller
 {
@@ -77,6 +79,23 @@ class AdminController extends Controller
             $arrangedCounts[$month] = $monthlyCounts[$month] ?? 0;
         }
 
+        $usersPayments = DB::table('transactions')
+                        ->join('dues', 'transactions.due_id', '=', 'dues.id')
+                        ->join('users', 'transactions.user_id', '=', 'users.id')
+                        ->join('categories', 'dues.payment_category_id', '=', 'categories.id') // Add this join
+                        ->selectRaw('MONTH(transactions.created_at) as month, YEAR(transactions.created_at) as year, categories.name as due_name, COUNT(DISTINCT transactions.user_id) as user_count, SUM(transactions.amount) as total_amount')
+                        ->groupBy('month', 'year', 'due_name')
+                        ->orderBy('year', 'asc')
+                        ->orderBy('month', 'asc')
+                        ->get();
+
+        // Translate month values to month names
+        $usersPayments = $usersPayments->map(function ($item) {
+            $monthName = Carbon::createFromDate(null, $item->month, null)->format('F');
+            $item->month = $monthName;
+            return $item;
+        });
+
         $data = [
             'totalFellow' => User::where('account_type', 'Fellow')->get()->count(),
             'totalAssociate' => User::where('account_type', 'Associate')->get()->count(),
@@ -95,8 +114,9 @@ class AdminController extends Controller
                                         })->with(['user', 'subscription'])->get()->sum('amount'),
             'totalPendingPayment' => Transaction::latest()->where('status', 'pending')->get()->count(),
             'totalApprovedPayment' => Transaction::latest()->where('status', 'success')->get()->count(),
-            'latestSixMember' => User::latest()->where('account_type', '<>', 'Administrator')->get()->take(5),
-            'latestSixAnnouncement' => Announcement::latest()->get()->take(6),
+            'latestFiveMember' => User::latest()->where('account_type', '<>', 'Administrator')->get()->take(5),
+            'latestFiveAnnouncement' => Announcement::latest()->get()->take(6),
+            'usersPayments' => $usersPayments,
             'monthly_members_joined' => $arrangedCounts
         ];
 

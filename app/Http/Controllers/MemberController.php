@@ -11,8 +11,10 @@ use App\Models\Notification;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -26,6 +28,78 @@ class MemberController extends Controller
     public function __construct()
     {
         $this->middleware(['auth', 'verified']);
+    }
+
+    public function dashboard(Request $request)
+    {
+        $query = DB::table('transactions')
+            ->join('dues', 'transactions.due_id', '=', 'dues.id')
+            ->join('users', 'transactions.user_id', '=', 'users.id')
+            ->join('categories', 'dues.payment_category_id', '=', 'categories.id')
+            ->selectRaw('MONTH(transactions.created_at) as month, YEAR(transactions.created_at) as year, categories.name as due_name, COUNT(DISTINCT transactions.user_id) as user_count, SUM(transactions.amount) as total_amount')
+            ->where('users.id', Auth::user()->id)
+            ->groupBy('month', 'year', 'due_name');
+
+        if ($request->has('year')) {
+            // Add a year filter if the 'year' parameter is provided in the request
+            $year = $request->input('year');
+            $query->whereRaw('YEAR(transactions.created_at) = ?', [$year]);
+        }
+            
+
+        $usersPayments = $query
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
+            ->get();
+
+        // Create an array with all months
+        $allMonths = range(1, 12);
+
+        // Initialize the result array with placeholders for all months
+        $result = [];
+        foreach ($allMonths as $month) {
+            $result[] = [
+                'month' => $month,
+                'year' => $request->year ?? Carbon::now()->year, // You can adjust the default year
+                'due_name' => null,
+                'user_count' => 0,
+                'total_amount' => 0.0,
+            ];
+        }
+
+        // Convert the query results into an associative array
+        $usersPaymentsArray = $usersPayments->toArray();
+
+        // Fill in the result array with data from the query results
+        foreach ($usersPaymentsArray as $payment) {
+            $month = $payment->month - 1; // Adjust for zero-based index
+            $result[$month] = [
+                'month' => $payment->month,
+                'year' => $payment->year,
+                'due_name' => $payment->due_name,
+                'user_count' => $payment->user_count,
+                'total_amount' => $payment->total_amount,
+            ];
+        }
+
+        // Translate month values to month names
+        $result = array_map(function ($item) {
+            $monthName = Carbon::createFromDate(null, $item['month'], null)->format('F');
+            $item['month'] = $monthName;
+            return $item;
+        }, $result);
+
+        $data = [
+            'recentFiveMembers' => User::where('account_type', 'Fellow')->get(),
+            'recentFiveAnnouncement' => Announcement::latest()->get()->take(6),
+            'usersPayments' => $result
+        ];
+
+        return response()->json([
+            'success' => true,
+            'message' => 'All dashboard details retrieved successfully.',
+            'data' => $data
+        ]); 
     }
 
     // Subscription
@@ -442,13 +516,18 @@ class MemberController extends Controller
             return $due->transactions->isEmpty();
         });
 
-        // Count the filtered dues
-        $countOfDuesWithEmptyTransactions = $duesWithEmptyTransactions;
+        // Load the 'category' relationship for each due in the filtered collection
+        $duesWithEmptyTransactions->each(function ($due) {
+            $due->load(['category.bank']);
+        });
+
+        // Re-index the filtered dues to start from 0
+        $duesWithEmptyTransactions = $duesWithEmptyTransactions->values();
 
         return response()->json([
             'code' => 200,
-            'message' => 'All Events Retrieved Successfully.',
-            'data' => $countOfDuesWithEmptyTransactions->load(['category.bank'])
+            'message' => 'All Payments Retrieved Successfully.',
+            'data' => $duesWithEmptyTransactions
         ], 200);
     }
 
