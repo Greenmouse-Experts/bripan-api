@@ -89,12 +89,21 @@ class MemberController extends Controller
             return $item;
         }, $result);
 
-        $data = [
-            'recentFiveMembers' => User::where('account_type', 'Fellow')->get(),
-            'recentFiveAnnouncement' => Announcement::latest()->get()->take(6),
-            'usersPayments' => $result
-        ];
-
+        if(Auth::user()->account_type == 'Fellow')
+        {
+            $data = [
+                'recentFiveMembers' => User::where('account_type', 'Fellow')->get(),
+                'recentFiveAnnouncement' => Announcement::latest()->get()->take(6),
+                'usersPayments' => $result
+            ];
+        } else {
+            $data = [
+                'recentFiveMembers' => User::where('account_type', 'Associate')->get(),
+                'recentFiveAnnouncement' => Announcement::latest()->get()->take(6),
+                'usersPayments' => $result
+            ];
+        }
+       
         return response()->json([
             'success' => true,
             'message' => 'All dashboard details retrieved successfully.',
