@@ -80,21 +80,52 @@ class AdminController extends Controller
         }
 
         $usersPayments = DB::table('transactions')
-                        ->join('dues', 'transactions.due_id', '=', 'dues.id')
-                        ->join('users', 'transactions.user_id', '=', 'users.id')
-                        ->join('categories', 'dues.payment_category_id', '=', 'categories.id') // Add this join
-                        ->selectRaw('MONTH(transactions.created_at) as month, YEAR(transactions.created_at) as year, categories.name as due_name, COUNT(DISTINCT transactions.user_id) as user_count, SUM(transactions.amount) as total_amount')
-                        ->groupBy('month', 'year', 'due_name')
-                        ->orderBy('year', 'asc')
-                        ->orderBy('month', 'asc')
-                        ->get();
+            ->join('dues', 'transactions.due_id', '=', 'dues.id')
+            ->selectRaw('MONTH(transactions.created_at) as month, YEAR(transactions.created_at) as year, SUM(transactions.amount) as total_amount')
+            ->groupBy('month', 'year')
+            ->orderBy('year', 'asc')
+            ->orderBy('month', 'asc')
+            ->get();
+
+        // Create an array with all months
+        $allMonths = range(1, 12);
+
+        // Initialize the result array with placeholders for all months
+        $result = [];
+        foreach ($allMonths as $month) {
+            $result[] = [
+                'month' => $month,
+                'year' => $request->year ?? Carbon::now()->year, // You can adjust the default year
+                'total_amount' => 0.0,
+            ];
+        }
+
+        // Convert the query results into an associative array
+        $usersPaymentsArray = $usersPayments->toArray();
+
+        // Fill in the result array with data from the query results
+        foreach ($usersPaymentsArray as $payment) {
+            $month = $payment->month - 1; // Adjust for zero-based index
+            $result[$month] = [
+                'month' => $payment->month,
+                'year' => $payment->year,
+                'total_amount' => $payment->total_amount,
+            ];
+        }
 
         // Translate month values to month names
-        $usersPayments = $usersPayments->map(function ($item) {
-            $monthName = Carbon::createFromDate(null, $item->month, null)->format('F');
-            $item->month = $monthName;
+        $result = array_map(function ($item) {
+            $monthName = Carbon::createFromDate(null, $item['month'], null)->format('F');
+            $item['month'] = $monthName;
             return $item;
-        });
+        }, $result);
+
+        // Translate month values to month names
+        // $usersPayments = $usersPayments->map(function ($item) {
+        //     $monthName = Carbon::createFromDate(null, $item->month, null)->format('F');
+        //     $item->month = $monthName;
+        //     return $item;
+        // });
 
         $data = [
             'totalFellow' => User::where('account_type', 'Fellow')->get()->count(),
@@ -116,7 +147,7 @@ class AdminController extends Controller
             'totalApprovedPayment' => Transaction::latest()->where('status', 'success')->get()->count(),
             'latestFiveMember' => User::latest()->where('account_type', '<>', 'Administrator')->get()->take(5),
             'latestFiveAnnouncement' => Announcement::latest()->get()->take(6),
-            'usersPayments' => $usersPayments,
+            'usersPayments' => $result,
             'monthly_members_joined' => $arrangedCounts
         ];
 
