@@ -94,12 +94,14 @@ class MemberController extends Controller
             $data = [
                 'recentFiveMembers' => User::where('account_type', 'Fellow')->get(),
                 'recentFiveAnnouncement' => Announcement::latest()->get()->take(6),
+                'recentFivePayments' => Transaction::latest()->where('user_id', Auth::user()->id)->with(['due.category', 'subscription'])->get()->take(6),
                 'usersPayments' => $result
             ];
         } else {
             $data = [
                 'recentFiveMembers' => User::where('account_type', 'Associate')->get(),
                 'recentFiveAnnouncement' => Announcement::latest()->get()->take(6),
+                'recentFivePayments' => Transaction::latest()->where('user_id', Auth::user()->id)->with(['due.category', 'subscription'])->get()->take(6),
                 'usersPayments' => $result
             ];
         }

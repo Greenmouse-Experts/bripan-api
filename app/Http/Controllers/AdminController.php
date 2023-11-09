@@ -128,7 +128,7 @@ class AdminController extends Controller
         // });
 
         $data = [
-            'totalFellow' => User::where('account_type', 'Fellow')->get()->count(),
+            'totalFellow' => User::wherea('account_type', 'Fellow')->get()->count(),
             'totalAssociate' => User::where('account_type', 'Associate')->get()->count(),
             'totalMembers' => User::where('account_type', '<>', 'Administrator')->get()->count(),
             'totalSubscribers' => User::where('isSubscribed', true)->get()->count(),
