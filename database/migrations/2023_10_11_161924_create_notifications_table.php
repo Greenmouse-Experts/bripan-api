@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->string('type')->nullable();
             $table->string('link')->nullable();
-            $table->text('status')->default('Unread');
+            $table->string('status')->default('Unread');
             $table->timestamps();
         });
     }
