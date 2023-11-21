@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Resources\AdminResource;
 use App\Http\Resources\UserResource;
+use App\Imports\MembershipsImport;
+use App\Models\Membership;
 use App\Models\ResetCodePassword;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -13,6 +15,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class AuthController extends Controller
 {
@@ -381,5 +385,69 @@ class AuthController extends Controller
                 'message' => "Code doesn't exist in our database."
             ], 401);
         }
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|mimes:xlsx,csv',
+        ]);
+
+        $file = $request->file('file');
+
+        Excel::import(new MembershipsImport, $file);
+        
+        return response()->json([
+            'code' => 200,
+            'message' => 'Data imported successfully.',
+        ], 200);
+
+    }
+
+    public function members(Request $request)
+    {
+        $rules = [
+            'membershipType' => 'required',
+            'name' => 'required',
+        ];
+
+        $messages = [
+            'membershipType.required' => 'Membership Type is required!',
+            'name.required' => 'Name is required!',
+        ];
+
+        if ($request->membershipType == 'Individual') {
+            $rules['membershipCategory'] = 'required';
+            $messages['membershipCategory.required'] = 'Membership Category is required!';
+        }
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'code' => 401,
+                'message' => $validator->errors()->first(),
+            ], 401);
+        }
+
+        $query = Membership::where('name', 'LIKE', "%{$request->name}%")->latest();
+
+        if ($request->membershipType == 'Individual') {
+            $query->where('title', 'LIKE', "%{$request->membershipCategory}%");
+        } else {
+            $query->where('title', 'LIKE', 'Company');
+        }
+
+        $members = $query->paginate(20)->appends($request->query());
+
+        if ($request->filled('name') && $members->isEmpty()) {
+            throw new ModelNotFoundException("Not found in our database.");
+        }
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'All members retrieved successfully.',
+            'data' => $members,
+        ]);
     }
 }

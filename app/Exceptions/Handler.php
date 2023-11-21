@@ -59,14 +59,14 @@ class Handler extends ExceptionHandler
                 ], 401);
             }
         });
-        $this->renderable(function (ErrorException $e, HttpRequest $request) {
-            if ($request->is('api/*')) {
-                return response([
-                    'code' => 401,
-                    'message' => 'Failed to get service'
-                ], 401);
-            }
-        });
+        // $this->renderable(function (ErrorException $e, HttpRequest $request) {
+        //     if ($request->is('api/*')) {
+        //         return response([
+        //             'code' => 401,
+        //             'message' => 'Failed to get service'
+        //         ], 401);
+        //     }
+        // });
         $this->renderable(function (MethodNotAllowedHttpException $e, HttpRequest $request) {
             if ($request->is('api/*')) {
                 return response([
