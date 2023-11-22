@@ -406,48 +406,63 @@ class AuthController extends Controller
 
     public function members(Request $request)
     {
-        $rules = [
-            'membershipType' => 'required',
-            'name' => 'required',
-        ];
+        if ($request->isMethod('get'))
+        {
+            $members = Membership::latest()->get('name');
 
-        $messages = [
-            'membershipType.required' => 'Membership Type is required!',
-            'name.required' => 'Name is required!',
-        ];
-
-        if ($request->membershipType == 'Individual') {
-            $rules['membershipCategory'] = 'required';
-            $messages['membershipCategory.required'] = 'Membership Category is required!';
-        }
-
-        $validator = Validator::make($request->all(), $rules, $messages);
-
-        if ($validator->fails()) {
             return response()->json([
-                'code' => 401,
-                'message' => $validator->errors()->first(),
-            ], 401);
+                'code' => 200,
+                'message' => 'Members name retrieved successfully.',
+                'data' => $members,
+            ]);
         }
 
-        $query = Membership::where('name', 'LIKE', "%{$request->name}%")->latest();
+        if ($request->isMethod('post'))
+        {
+            $rules = [
+                'membershipType' => 'required',
+                'name' => 'required',
+            ];
 
-        if ($request->membershipType == 'Individual') {
-            $query->where('title', 'LIKE', "%{$request->membershipCategory}%");
-        } else {
-            $query->where('title', 'LIKE', 'Company');
+            $messages = [
+                'membershipType.required' => 'Membership Type is required!',
+                'name.required' => 'Name is required!',
+            ];
+
+            if ($request->membershipType == 'Individual') {
+                $rules['membershipCategory'] = 'required';
+                $messages['membershipCategory.required'] = 'Membership Category is required!';
+            }
+
+            $validator = Validator::make($request->all(), $rules, $messages);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 401,
+                    'message' => $validator->errors()->first(),
+                ], 401);
+            }
+
+            $query = Membership::where('name', 'LIKE', "%{$request->name}%")->latest();
+
+            if ($request->membershipType == 'Individual') {
+                $query->where('title', 'LIKE', "%{$request->membershipCategory}%");
+            } else {
+                $query->where('title', 'LIKE', 'Company');
+            }
+
+            // Use paginate to get paginated results
+            $members = $query->get();
+
+            if ($request->filled('name') && $members->isEmpty()) {
+                throw new ModelNotFoundException("Not found in our database.");
+            }
+
+            return response()->json([
+                'code' => 200,
+                'message' => 'All members retrieved successfully.',
+                'data' => $members,
+            ]);
         }
-
-        $members = $query->paginate(20)->appends($request->query());
-
-        if ($request->filled('name') && $members->isEmpty()) {
-            throw new ModelNotFoundException("Not found in our database.");
-        }
-
-        return response()->json([
-            'code' => 200,
-            'message' => 'All members retrieved successfully.',
-            'data' => $members,
-        ]);
     }
 }

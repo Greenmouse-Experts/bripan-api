@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MemberController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,55 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+// Commands
+Route::get('/clear-route-cache', function() {
+    Artisan::call('route:cache');
+    return 'success';
+});
+
+//Remove config cache
+Route::get('/clear-config-cache', function() {
+    Artisan::call('config:cache');
+    return 'success';
+}); 
+
+// Remove application cache
+Route::get('/clear-app-cache', function() {
+    Artisan::call('cache:clear');
+    return 'success';
+});
+
+// Remove view cache
+Route::get('/clear-view-cache', function() {
+    Artisan::call('view:clear');
+    return 'success';
+});
+
+Route::get('/storage-link', function () {
+    Artisan::call('storage:link');
+    return 'success';
+});
+
+Route::get('/migrate', function(){
+    Artisan::call('migrate', ['--force' => true]);
+    return 'success';
+});
+
+Route::get('/migrate-fresh', function(){
+    Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+    return 'success';
+});
+
+Route::get('/migrate-refresh', function(){
+    Artisan::call('migrate:refresh', ['--seed' => true, '--force' => true]);
+    return 'success';
+});
+
+Route::get('/migrate-seed', function(){
+    Artisan::call('migrate', ['--seed' => true, '--force' => true]);
+    return 'success';
+});
 
 Route::get('/', function () {
     return response([
@@ -32,7 +82,7 @@ Route::get('/login', function () {
 })->name('login');
 Route::group(['middleware' => ['cors', 'json.response']], function () {
     Route::post('/import/member', [AuthController::class, 'import']);
-    Route::post('/get/member', [AuthController::class, 'members']);
+    Route::any('/get/member', [AuthController::class, 'members']);
 
     Route::prefix('/auth')->group(function () {
         Route::post('/admin/login', [AuthController::class, 'admin_login']);
