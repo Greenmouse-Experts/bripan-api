@@ -408,13 +408,28 @@ class AuthController extends Controller
     {
         if ($request->isMethod('get'))
         {
-            $members = Membership::latest()->get('name');
+            // Check if 'search' parameter exists in the request
+            if ($request->has('search')) {
+                $searchTerm = $request->input('search');
 
-            return response()->json([
-                'code' => 200,
-                'message' => 'Members name retrieved successfully.',
-                'data' => $members,
-            ]);
+                // Search for members with names containing the search term
+                $members = Membership::where('name', 'like', '%' . $searchTerm . '%')->latest()->get('name');
+
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Members filtered by name successfully.',
+                    'data' => $members,
+                ]);
+            } else {
+                // If 'search' parameter is not provided, retrieve all members
+                $members = Membership::latest()->get('name');
+
+                return response()->json([
+                    'code' => 200,
+                    'message' => 'Members name retrieved successfully.',
+                    'data' => $members,
+                ]);
+            }
         }
 
         if ($request->isMethod('post'))
